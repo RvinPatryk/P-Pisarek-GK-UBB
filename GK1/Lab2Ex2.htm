@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html><!--
+   This web page does the minimal setup for using mouse events along
+   with 2D canvas graphics.
+--><head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<meta charset="UTF-8">
+<title>CS424, Lab 2, Exercise 2</title>
+<style>
+    /* This style section is here to make the canvas more obvious on the
+       page.  It is white on a light gray page background, with a thin
+       black border.  Also, turn off text selection to avoid having
+       selection interfere with mouse action. */
+    body {
+        background-color: #DDDDDD;
+        -webkit-user-select: none; /* turn off text selection  / Webkit */
+        -moz-user-select: none;    /* Firefox */
+        -ms-user-select: none;     /* IE 10  */
+        -o-user-select: none;      /* Opera */
+        user-select: none;
+    }
+    canvas {
+        background-color: white;
+        display: block;
+    }
+    #canvasholder {
+        border:2px solid black;
+        float: left; /* This makes the border exactly fit the canvas. */
+    }
+</style>
+<script>
+    "use strict";
+    
+    var canvas, graphics, dragging = false, prevX, prevY;
+	/**
+     * This function returns a string representing a random RGB color.
+     * The returned string can be assigned as the value of graphics.fillStyle
+     * or graphics.strokeStyle.
+     */
+    function randomColorString() {
+        var r = Math.floor(256*Math.random());
+        var g = Math.floor(256*Math.random());
+        var b = Math.floor(256*Math.random());
+        return "rgb(" + r + "," + g + "," + b + ")";
+    }
+	
+    
+    function installMouseHandler() {
+        canvas.addEventListener("mousedown", function(evt) {
+            dragging = true;
+            var r = canvas.getBoundingClientRect();
+            prevX = evt.clientX - r.left;
+            prevY = evt.clientY - r.top;
+        });
+        
+        canvas.addEventListener("mousemove", function(evt) {
+            if (!dragging) return;
+            var r = canvas.getBoundingClientRect();
+            var x = evt.clientX - r.left;
+            var y = evt.clientY - r.top;
+            
+            let colorChoice = document.getElementById("colorChoice").value;
+            switch (colorChoice) {
+                case "1": graphics.fillStyle = "red"; break;
+                case "2": graphics.fillStyle = "green"; break;
+                case "3": graphics.fillStyle = "blue"; break;
+                case "4": graphics.fillStyle = "purple"; break;
+                default: graphics.fillStyle = randomColorString();
+            }
+            
+            if (shapeMode === "dodecagon") {
+                drawPolygon(x, y, 20, 12);
+            } else {
+                graphics.fillRect(x - 20, y - 20, 40, 40);
+				graphics.strokeRect(x-20,y-20,40,40);
+            }
+            
+            prevX = x; prevY = y;
+        });
+        
+        canvas.addEventListener("mouseup", function() {
+            dragging = false;
+        });
+    }
+	
+	
+    var shapeMode = "square"; // Domyślny tryb rysowania
+    
+    
+    function clearCanvas() {
+        graphics.clearRect(0, 0, canvas.width, canvas.height);
+    }
+	
+   /**
+     * This function can be called to add a collection of extra drawing function to
+     * a graphics context, to make it easier to draw basic shapes with that context.
+     * The parameter, graphics, must be a canvas 2d graphics context.
+     *
+     * The following new functions are added to the graphics context:
+     *
+     *    graphics.strokeLine(x1,y1,x2,y2) -- stroke the line from (x1,y1) to (x2,y2).
+     *    graphics.fillCircle(x,y,r) -- fill the circle with center (x,y) and radius r.
+     *    graphics.strokeCircle(x,y,r) -- stroke the circle.
+     *    graphics.fillOval(x,y,r1,r2) -- fill oval with center (x,y) and radii r1 and r2.
+     *    graphics.stokeOval(x,y,r1,r2) -- stroke the oval
+     *    graphics.fillPoly(x1,y1,x2,y2,...) -- fill polygon with vertices (x1,y1), (x2,y2), ...
+     *    graphics.strokePoly(x1,y1,x2,y2,...) -- stroke the polygon.
+     *    graphics.getRGB(x,y) -- returns the color components of pixel at (x,y) as an array of
+     *         four integers in the range 0 to 255, in the order red, green, blue, alpha.
+     *
+     * (Note that "this" in a function that is called as a member of an object refers to that
+     * object.  Here, this will refer to the graphics context.)
+     */
+    function addGraphicsContextExtras(graphics) {
+        graphics.strokeLine = function(x1,y1,x2,y2) {
+           this.beginPath();
+           this.moveTo(x1,y1);
+           this.lineTo(x2,y2);
+           this.stroke();
+        }
+        graphics.fillCircle = function(x,y,r) {
+           this.beginPath();
+           this.arc(x,y,r,0,2*Math.PI,false);
+           this.fill();
+        }
+        graphics.strokeCircle = function(x,y,radius) {
+           this.beginPath();
+           this.arc(x,y,radius,0,2*Math.PI,false);
+           this.stroke();
+        }
+        graphics.fillPoly = function() { 
+            if (arguments.length < 6)
+               return;
+            this.beginPath();
+            this.moveTo(arguments[0],arguments[1]);
+            for (var i = 2; i+1 < arguments.length; i = i + 2) { 
+               this.lineTo(arguments[i],arguments[i+1]);
+            }
+            this.closePath();
+            this.fill();
+        }
+        graphics.strokePoly = function() { 
+            if (arguments.length < 4)
+               return;
+            this.beginPath();
+            this.moveTo(arguments[0],arguments[1]);
+            for (var i = 2; i+1 < arguments.length; i = i + 2) { 
+               this.lineTo(arguments[i],arguments[i+1]);
+            }
+            this.closePath();
+            this.stroke();
+        }
+        graphics.fillOval = function(x,y,horizontalRadius,verticalRadius) {
+           this.save();
+           this.translate(x,y);
+           this.scale(horizontalRadius,verticalRadius);
+           this.beginPath();
+           this.arc(0,0,1,0,2*Math.PI,false);
+           this.restore();
+           this.fill();
+        }
+        graphics.strokeOval = function(x,y,horizontalRadius,verticalRadius) {
+           this.save();
+           this.translate(x,y);
+           this.scale(horizontalRadius,verticalRadius);
+           this.beginPath();
+           this.arc(0,0,1,0,2*Math.PI,false);
+           this.restore();
+           this.stroke();
+        }
+        graphics.getRGB = function(x,y) {
+            var color = this.getImageData(x,y,1,1);
+            return color.data;
+        }
+    }    // end of addGraphicsContextExtras()
+    
+       
+    /**
+     * The init() function is called after the page has been
+     * loaded.  It initializes the canvas and graphics variables,
+     * and it installs mouse and key listeners.  If an error
+     * occurs, a message is displayed in place of the canvas.
+     */
+    
+    function drawPolygon(x, y, radius, sides) {
+        let angle = (2 * Math.PI) / sides;
+        graphics.beginPath();
+        graphics.moveTo(x + radius * Math.cos(0), y + radius * Math.sin(0));
+        for (let i = 1; i <= sides; i++) {
+            graphics.lineTo(x + radius * Math.cos(i * angle), y + radius * Math.sin(i * angle));
+        }
+        graphics.closePath();
+        graphics.fill();
+        graphics.stroke();
+    }
+    
+    function changeShape() {
+        shapeMode = document.getElementById("shapeChoice").value;
+    }
+    
+    function init() {
+        try {
+            canvas = document.getElementById("canvas");
+            graphics = canvas.getContext("2d");
+        } catch(e) {
+            document.getElementById("canvasholder").innerHTML =
+               "<p>Canvas graphics is not supported.<br>" +
+               "An error occurred while initializing graphics.</p>";
+               return;
+        }
+        addGraphicsContextExtras(graphics);
+        installMouseHandler();
+        graphics.fillStyle = "white";
+        graphics.fillRect(0,0,canvas.width,canvas.height);
+    }
+</script>
+<link href="data:text/css,%3Ais(%5Bid*%3D'google_ads_iframe'%5D%2C%5Bid*%3D'taboola-'%5D%2C.taboolaHeight%2C.taboola-placeholder%2C%23credential_picker_container%2C%23credentials-picker-container%2C%23credential_picker_iframe%2C%5Bid*%3D'google-one-tap-iframe'%5D%2C%23google-one-tap-popup-container%2C.google-one-tap-modal-div%2C%23amp_floatingAdDiv%2C%23ez-content-blocker-container)%20%7Bdisplay%3Anone!important%3Bmin-height%3A0!important%3Bheight%3A0!important%3B%7D" rel="stylesheet" type="text/css">
+</head>
+<body onload="init()"> <!-- the onload attribute here is what calls the init() function -->
+
+<h2>Lab 2, Exercise 2: Mousing</h2>
+
+<noscript>
+    <!-- This message will be shown in the page if JavaScript is not available. -->
+<p>JavaScript is required to use this page.</p>
+</noscript>
+
+<button onclick="clearCanvas()">Clear</button>
+<p><b>Color:</b>
+    <select id="colorChoice">
+        <option value="0" selected>Random</option>
+        <option value="1">Red</option>
+        <option value="2">Green</option>
+        <option value="3">Blue</option>
+        <option value="4">Purple (New)</option>
+    </select>
+</p>
+
+<p><b>Shape:</b>
+    <select id="shapeChoice" onchange="changeShape()">
+        <option value="square" selected>Square</option>
+        <option value="dodecagon">Dodecagon</option>
+    </select>
+</p>
+
+<div id="canvasholder">
+<canvas id="canvas" width="800" height="600">
+<!-- This message is shown on the page if the browser doesn't support the canvas element. -->
+	Canvas not supported.
+</canvas>
+</div>
+<script>mendeleyWebImporter = {
+  downloadPdfs(e,t) { return this._call('downloadPdfs', [e,t]); },
+  open() { return this._call('open', []); },
+  setLoginToken(e) { return this._call('setLoginToken', [e]); },
+  _call(methodName, methodArgs) {
+    const id = Math.random();
+    window.postMessage({ id, token: '0.9739079369679529', methodName, methodArgs }, 'https://e-uczelnia.ath.bielsko.pl');
+    return new Promise(resolve => {
+      const listener = window.addEventListener('message', event => {
+        const data = event.data;
+        if (typeof data !== 'object' || !('result' in data) || data.id !== id) return;
+        window.removeEventListener('message', listener);
+        resolve(data.result);
+      });
+    });
+  }
+};</script></body></html>
