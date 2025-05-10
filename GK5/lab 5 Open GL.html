@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <title>OpenGL w JS — Lab</title>
+  <style>
+    body { margin: 0; overflow: hidden; }
+    canvas { display: block; }
+  </style>
+</head>
+<body>
+<script type="module">
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.176.0/build/three.module.js';
+
+// scena, kamera, renderer
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+camera.position.z = 15;
+
+const renderer = new THREE.WebGLRenderer();
+renderer.setSize(window.innerWidth, window.innerHeight);
+document.body.appendChild(renderer.domElement);
+
+// grupa na obiekty
+const objectGroup = new THREE.Group();
+scene.add(objectGroup);
+
+// zmienne globalne
+let rotateX = 0, rotateY = 0, rotateZ = 0;
+let objectNumber = 1;
+
+// obiekt 1 - korkociąg
+function drawCorkscrew() {
+    const pts = [];
+    const n = 12;
+    const angle = Math.PI / n;
+
+    for (let i = 0; i < n * n; i++) {
+        const r = 0.03 * i * 10;
+        const x = Math.cos(angle * i) * r;
+        const y = (i / n);
+        const z = Math.sin(angle * i) * r;
+        pts.push(new THREE.Vector3(x, y, z));
+    }
+
+    const geometry = new THREE.BufferGeometry().setFromPoints(pts);
+    const material = new THREE.LineBasicMaterial({ color: 0x00aa00 }); // zielony
+    return new THREE.Line(geometry, material);
+}
+
+// pomocnicza funkcja - jeden trójkąt
+function drawTriangle(p1, p2) {
+    const geometry = new THREE.BufferGeometry();
+    const verts = new Float32Array([
+        p1.x, p1.y, p1.z,
+        p2.x, p2.y, p2.z,
+        0, 0, 0
+    ]);
+    geometry.setAttribute('position', new THREE.BufferAttribute(verts, 3));
+    const mat = new THREE.MeshBasicMaterial({ color: 0xaa0000, side: THREE.DoubleSide });
+    return new THREE.Mesh(geometry, mat);
+}
+
+// obiekt 2 - pyramida z wachlarzy
+function drawPyramid() {
+    const group = new THREE.Group();
+    const radius = 2;
+    const height = 2;
+    const verts = 12;
+
+    for (let i = 0; i < verts; i++) {
+        const a1 = (i / verts) * 2 * Math.PI;
+        const a2 = ((i + 1) / verts) * 2 * Math.PI;
+
+        const p1 = new THREE.Vector3(Math.cos(a1) * radius, Math.sin(a1) * radius, height);
+        const p2 = new THREE.Vector3(Math.cos(a2) * radius, Math.sin(a2) * radius, height);
+
+        const tri = drawTriangle(p1, p2);
+        group.add(tri);
+    }
+
+    return group;
+}
+
+// zmiana obiektu
+function updateObject() {
+    objectGroup.clear();
+    let obj;
+    if (objectNumber === 1) obj = drawCorkscrew();
+    else if (objectNumber === 2) obj = drawPyramid();
+    else obj = drawCorkscrew(); // domyślnie
+
+    objectGroup.add(obj);
+}
+updateObject();
+
+// animacja
+function animate() {
+    requestAnimationFrame(animate);
+    objectGroup.rotation.x = rotateX;
+    objectGroup.rotation.y = rotateY;
+    objectGroup.rotation.z = rotateZ;
+    renderer.render(scene, camera);
+}
+animate();
+
+// obsługa klawiatury
+window.addEventListener('keydown', (e) => {
+    const step = 0.1;
+    switch (e.code) {
+        case 'ArrowLeft': rotateY -= step; break;
+        case 'ArrowRight': rotateY += step; break;
+        case 'ArrowUp': rotateX -= step; break;
+        case 'ArrowDown': rotateX += step; break;
+        case 'PageUp': rotateZ += step; break;
+        case 'PageDown': rotateZ -= step; break;
+        case 'Home': rotateX = rotateY = rotateZ = 0; break;
+        case 'Digit1': objectNumber = 1; updateObject(); break;
+        case 'Digit2': objectNumber = 2; updateObject(); break;
+    }
+});
+</script>
+</body>
+</html>
